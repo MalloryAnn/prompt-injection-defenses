@@ -4,7 +4,7 @@ reference github: https://github.com/tldrsec/prompt-injection-defenses?tab=readm
 
 Notes:
 
-** Starting with guardrails-ai/guardrails
+## Starting with guardrails-ai/guardrails
 
 -follow installation instrucitons
 
@@ -16,7 +16,7 @@ Student Tasks
 
 o Use provided datasets or small test cases.
 
-**Body Paragraphs
+## Body Paragraphs
 
 Must show:
 
@@ -30,7 +30,7 @@ Must show:
 
 Walkthrough Report (4–6 pages, PDF)
 
-**Body Paragraphs
+## Body Paragraphs
 
 Sections:
 
