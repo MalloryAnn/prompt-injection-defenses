@@ -1,4 +1,6 @@
-# prompt-injection-benchmarking-scenarios
+# prompt-injection-defenses
+
+reference github: https://github.com/tldrsec/prompt-injection-defenses?tab=readme-ov-file
 
 Notes:
 
