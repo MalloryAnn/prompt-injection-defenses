@@ -13,8 +13,11 @@ Student Tasks
 o Use provided datasets or small test cases.
 
 **Body Paragraphs
+
 Must show:
+
 • What problem the tool solves
+
 • How LLMs are used
 • Input → processing → output
 • At least one meaningful example
