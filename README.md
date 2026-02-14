@@ -4,7 +4,7 @@ reference github: https://github.com/tldrsec/prompt-injection-defenses?tab=readm
 
 Notes:
 
-## Starting with guardrails-ai/guardrails
+## Starting with Blast Reduction: i did research and think we should do this firsta nd then guardrails
 
 -follow installation instrucitons
 
