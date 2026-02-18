@@ -1,24 +1,31 @@
 # Prompt Injection Detection with LLM Guard
 
+## Overview
+
 This repository demonstrates input-level prompt injection detection using Protect AI’s `llm-guard` toolkit.
 
 The project implements an input-boundary security filter that evaluates user prompts before they are passed to a generative Large Language Model (LLM). The system assigns a numeric risk score and produces an allow/block decision based on a configurable detection threshold.
 
-This implementation is based on the taxonomy presented in the `tldrsec/prompt-injection-defenses` repository and focuses specifically on detection-based mitigation rather than runtime guardrails or privilege isolation.
+This implementation is based on the taxonomy presented in the [`tldrsec/prompt-injection-defenses`](https://github.com/tldrsec/prompt-injection-defenses) repository and focuses specifically on detection-based mitigation rather than runtime guardrails or privilege isolation.
 
-The repository includes:
 
-- A standalone Python implementation (`demo.py`)
-- An interactive Jupyter notebook (`demo.ipynb`)
-- Reproducible environment configuration (`requirements.txt`)
-- A clean dependency isolation setup using a virtual environment
+## Repository Includes
 
-This project is suitable for:
+| Component | Description |
+|------------|-------------|
+| `demo.py` | Standalone Python implementation |
+| `demo.ipynb` | Interactive Jupyter notebook version |
+| `requirements.txt` | Reproducible dependency configuration |
+| Virtual Environment | Clean dependency isolation |
 
-- Students learning about LLM security
-- Engineers exploring prompt injection defenses
-- Researchers studying input-boundary filtering
 
+## Intended Audience
+
+- Students learning about LLM security  
+- Engineers exploring prompt injection defenses  
+- Researchers studying input-boundary filtering  
+
+---
 
 ---
 
@@ -26,14 +33,17 @@ This project is suitable for:
 
 Prompt injection is a class of attacks in which adversarial instructions are embedded within user input or externally retrieved text in order to override system behavior.
 
-Because Large Language Models process both instructions and data as natural language, malicious directives can be inserted into otherwise legitimate content. These attacks may attempt to:
+Because Large Language Models process both instructions and data as natural language, malicious directives can be inserted into otherwise legitimate content.
 
-- Override developer or system instructions
-- Extract hidden system prompts
-- Trigger unintended tool execution
-- Exfiltrate sensitive information
+### Common Attack Goals
 
-Detection at the input boundary reduces the likelihood that malicious instructions reach the generative model.
+- Override developer or system instructions  
+- Extract hidden system prompts  
+- Trigger unintended tool execution  
+- Exfiltrate sensitive information  
+
+> [!IMPORTANT]
+> Detection at the input boundary reduces the likelihood that malicious instructions reach the generative model.
 
 ---
 
@@ -41,26 +51,27 @@ Detection at the input boundary reduces the likelihood that malicious instructio
 
 This project implements an input-level detection layer using the `PromptInjection` scanner from `llm-guard`.
 
-### Input
-Raw prompt text supplied by a user or external source.
+### Model Used
 
-### Processing
-The scanner loads a transformer-based classification model:
-
-**protectai/deberta-v3-base-prompt-injection-v2**
+[`protectai/deberta-v3-base-prompt-injection-v2`](https://github.com/protectai/llm-guard)
 
 The model analyzes the prompt and estimates the probability that it contains injection-style instructions.
+
+---
+
+### Scanner Output
 
 The scanner returns:
 
 ```python
 sanitized_prompt, is_valid, risk_score
 ```
-- sanitized_prompt – cleaned version of the input
+| Return Value       | Description                                 |
+| ------------------ | ------------------------------------------- |
+| `sanitized_prompt` | Cleaned version of the input                |
+| `is_valid`         | Boolean allow/block decision                |
+| `risk_score`       | Numeric probability between `0.0` and `1.0` |
 
-- is_valid – Boolean allow/block decision
-
-- risk_score – numeric probability between 0.0 and 1.0
 
 ### Decision Logic
 
