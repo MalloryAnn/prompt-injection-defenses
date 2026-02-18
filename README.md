@@ -103,6 +103,16 @@ Run the standalone script
 ```bash
 python3 demo.ipynb
 ```
+**Or**
+
+Open Jupyter and run the notebook
+```bash
+jupyter notebook
+```
+**Then open** 
+```
+demo.ipynb
+```
 
 
 
