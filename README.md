@@ -1,5 +1,14 @@
 # Prompt Injection Detection with LLM Guard
 
+## Table of Contents
+
+- [Overview](#overview)
+- [Security Context](#security-context-prompt-injection)
+- [System Architecture](#system-architecture)
+- [Running the Project](#running-the-project)
+- [References](#references)
+
+
 ## Overview
 
 This repository demonstrates input-level prompt injection detection using Protect AI’s `llm-guard` toolkit.
