@@ -1,3 +1,4 @@
+#old code
 from llm_guard.input_scanners import PromptInjection
 from llm_guard.input_scanners.prompt_injection import MatchType
 
