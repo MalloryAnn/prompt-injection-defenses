@@ -30,8 +30,8 @@ Environment:
 - Model automatically downloaded on first execution
 
 Primary Files:
-- `demo.py`
-- `Milestone1_LLM_Guard_Demo.ipynb`
+- `demo.ipynb`
+- - `demo.py`
 
 Test Prompts Evaluated:
 1. Benign summarization request  
