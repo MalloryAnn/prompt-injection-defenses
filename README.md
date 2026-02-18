@@ -24,9 +24,6 @@ This implementation is based on the taxonomy presented in the [`tldrsec/prompt-i
 - Students learning about LLM security  
 - Engineers exploring prompt injection defenses  
 - Researchers studying input-boundary filtering  
-
----
-
 ---
 
 ## Security Context: Prompt Injection
@@ -44,7 +41,6 @@ Because Large Language Models process both instructions and data as natural lang
 
 > [!IMPORTANT]
 > Detection at the input boundary reduces the likelihood that malicious instructions reach the generative model.
-
 ---
 
 ## System Architecture
@@ -72,6 +68,7 @@ sanitized_prompt, is_valid, risk_score
 | `is_valid`         | Boolean allow/block decision                |
 | `risk_score`       | Numeric probability between `0.0` and `1.0` |
 
+---
 
 ### Decision Logic
 
@@ -90,21 +87,17 @@ risk_score >= 0.5
 
 - This separation between detection and generation reduces the attack surface of LLM-integrated applications.
 
-
-
 ---
 
 ## Running the Project
 
-### 1. Clone Repository
+### Step 1 — Clone the Repository
 
-``` bash
+```bash
 git clone https://github.com/<your-username>/prompt-injection-defenses.git
 cd prompt-injection-defenses
----
 ```
-### 2. Create Virtual Environment
-
+### Step 2 — Create a Virtual Environment
 macOS / Linux:
 ```
 python3 -m venv venv
@@ -120,26 +113,28 @@ Windows (Command Prompt)
 python -m venv venv
 venv\Scripts\activate
 ```
-### 3. Install Dependencies
+### Step 3 —  Install Dependencies
 ```bash
 pip install -r requirements.txt
 ```
 ```bash
 pip install "numpy<2"
 ```
-### 4. Execution Options
-Run Basic Test 1 script
+> [!NOTE]
+> `numpy` is pinned in `requirements.txt` to version `1.26.4` to maintain compatibility with PyTorch.
+
+
+## Execution Options
+
+### Option A - Run Basic Test 1 script (demo.py)
 ```bash
 python3 demo.py
 ```
 This version is suitable for quick terminal-based execution.
 
-**Or**  
+### Option B - Run Jupyter Comprehensive Notebook (demo.ipynb)
 
-
-### Run Jupyter Comprehensive Notebook
-
-Open Jupyter and run the notebook that has test 1 - 6
+Open Jupyter
 ```bash
 jupyter notebook
 ```
@@ -147,43 +142,34 @@ jupyter notebook
 ```
 demo.ipynb
 ```
-**Comprehensive File Descriptions**
-**`demo.py`**  
-Standalone Python implementation of the prompt injection detector.  
-Runs detection on predefined test prompts and prints:
-
-- Prompt text
-- Allow/block decision
-- Risk score
-
-This version is suitable for quick terminal-based execution.
+>[!NOTE]
+>This notebook includes Test 1 – Test 6 and provides step-by-step execution with printed results.
 
 ---
 
-**`demo.ipynb`**  
-Interactive notebook version of the same implementation.  
-Provides:
+## Repository Structure
 
-- Step-by-step execution
-- Visible model initialization logs
-- Printed detection results
-- Suitable format for demonstration and experimentation
-
-This version is recommended for educational use and walkthroughs.
+| File | Description |
+|------|-------------|
+| `demo.py` | Standalone script that runs prompt injection detection on predefined test prompts and prints results to the terminal. |
+| `demo.ipynb` | Interactive notebook version of the detector that allows step-by-step execution and testing (includes Test 1–6). |
+| `requirements.txt` | Lists the exact Python packages needed to run the project. |
+| `.gitignore` | Prevents unnecessary local files from being uploaded to GitHub. |
 
 ---
 
-**`requirements.txt`**  
-Fully reproducible dependency list generated from the working virtual environment.  
-Allows other users to recreate the exact runtime configuration.
+## References
 
----
+This implementation and Milestone 1 are informed by current academic and open-source work in LLM security, including:
 
-**`.gitignore`**  
-Prevents local development files (e.g., virtual environments, IDE configuration files, notebook checkpoints) from being committed to the repository.
+1. tldrsec. *Prompt Injection Defenses.*  
+   Available at: https://github.com/tldrsec/prompt-injection-defenses
 
+2. Protect AI. *LLM Guard Toolkit.*  
+   Available at: https://github.com/protectai/llm-guard
 
-
-
+3. Gong, Neil. *Securing LLM Agents Against Prompt Injection Attacks.*  
+   Duke University, 2025.  
+   Available at: https://people.duke.edu/~zg70/code/PromptInjection.pdf
 
 
