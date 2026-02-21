@@ -1,4 +1,6 @@
-#old code
+# Experiment 1: This file is to view quick output of prompt injection defenses results.
+# View Experiments 1-6 in demo.pynb
+
 from llm_guard.input_scanners import PromptInjection
 from llm_guard.input_scanners.prompt_injection import MatchType
 
