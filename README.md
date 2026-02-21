@@ -103,7 +103,7 @@ risk_score >= 0.5
 ### Step 1 — Clone the Repository
 
 ```bash
-git clone https://github.com/<your-username>/prompt-injection-defenses.git
+git clone https://github.com/MalloryAnn/prompt-injection-defenses.git
 cd prompt-injection-defenses
 ```
 ### Step 2 — Create a Virtual Environment
