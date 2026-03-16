@@ -4,7 +4,7 @@ import os
 # Get API key from environment variable
 openai_apikey = os.getenv("OPENAI_API_KEY")
 
-# dummy values (not used for basic test)
+# dummy values
 pinecone_apikey = ""
 pinecone_index = ""
 
