@@ -5,3 +5,4 @@ venv/
 
 vigil-llm/
 *.mov
+__pycache__/

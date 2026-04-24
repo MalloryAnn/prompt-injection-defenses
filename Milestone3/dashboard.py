@@ -25,6 +25,7 @@ import dash_cytoscape as cyto
 import pandas as pd
 
 from pipeline_backend import initialize_systems, analyze_prompt, load_results_csv, summarize_results
+from evaluation import get_metrics
 
 BASE_DIR = Path(__file__).resolve().parent
 CSV_PATH = BASE_DIR / "contribution_results_1000.csv"
@@ -241,6 +242,7 @@ sample_prompts = {
 default_prompt = sample_prompts["ml"]
 default_result = analyze_prompt(default_prompt, systems)
 
+performance = get_metrics()
 # ---------- Styling ----------
 PAGE_STYLE = {
     "fontFamily": "Inter, Arial, sans-serif",
@@ -500,7 +502,6 @@ def build_elements(result: dict) -> List[Dict]:
     }
 
     elements = [
-        {"data": {"id": "guardrail_box", "label": "CUSTOM PROMPT\nINJECTION GUARDRAIL"}, "classes": "group"},
         {"data": {"id": "dash_ui", "label": "Dash UI\nUser Prompt"}},
         {"data": {"id": "backend", "label": "Pipeline\nBackend"}},
         {"data": {"id": "input_guardrail", "label": "Input\nScreening"}},
@@ -576,7 +577,6 @@ def pretty_panel(node_id: str, result: dict):
 stylesheet = [
     {"selector": "node", "style": {"shape": "round-rectangle", "width": 155, "height": 72, "label": "data(label)", "text-wrap": "wrap", "text-max-width": 138, "font-size": 13, "font-weight": 700, "text-valign": "center", "text-halign": "center", "background-color": "#e9eef5", "border-width": 2, "border-color": "#60738b"}},
     {"selector": "edge", "style": {"curve-style": "bezier", "target-arrow-shape": "triangle", "width": 2, "line-color": "#8ca0b8", "target-arrow-color": "#8ca0b8"}},
-    {"selector": ".group", "style": {"shape": "round-rectangle", "width": 790, "height": 345, "background-opacity": 0.06, "background-color": "#90EE90", "border-width": 3, "border-style": "dashed", "border-color": "#6ab04c", "label": "data(label)", "font-size": 13, "font-weight": 900, "text-valign": "top", "text-margin-y": -158, "text-halign": "center"}},
     {"selector": ".flagged", "style": {"background-color": "#ffdcdc", "border-color": "#dc2626", "border-width": 3}},
     {"selector": ".borderline", "style": {"background-color": "#fff2bd", "border-color": "#f59e0b", "border-width": 3}},
     {"selector": ".safe", "style": {"background-color": "#e3ffeb", "border-color": "#22a15f", "border-width": 3}},
@@ -587,7 +587,6 @@ architecture_layout = {
     "fit": True,
     "padding": 44,
     "positions": {
-        "guardrail_box": {"x": 590, "y": 240},
         "dash_ui": {"x": 80, "y": 240},
         "backend": {"x": 245, "y": 240},
         "input_guardrail": {"x": 410, "y": 240},
@@ -638,13 +637,13 @@ app.layout = html.Div(
                                         stylesheet=stylesheet,
                                         responsive=True,
                                         autoungrabify=True,
-                                        userPanningEnabled=True,
-                                        userZoomingEnabled=True,
+                                        userPanningEnabled=False,
+                                        userZoomingEnabled=False,
                                         style={"width": "100%", "height": "540px", "backgroundColor": "white", "borderRadius": "18px", "overflow": "hidden"},
                                     ),
                                     style={"flex": "1.6 1 850px", "minWidth": "0"},
                                 ),
-                                html.Div(id="detail-panel", children=pretty_panel("guardrail_box", default_result), style={**CARD_STYLE, "flex": "0.75 1 390px", "minWidth": "0", "padding": "24px", "minHeight": "540px", "overflowX": "hidden"}),
+                                html.Div(id="detail-panel", children=pretty_panel("input_guardrail", default_result), style={**CARD_STYLE, "flex": "0.75 1 390px", "minWidth": "0", "padding": "24px", "minHeight": "540px", "overflowX": "hidden"}),
                             ],
                             style={"display": "flex", "gap": "20px", "flexWrap": "wrap", "width": "100%"},
                         ),
@@ -657,14 +656,19 @@ app.layout = html.Div(
                         gradient_title("Evaluation Results (1000 Prompt Dataset)", "30px"),
                         html.Div(
                             [
-                                metric_card("Total prompts", str(metrics["total_prompts"]), "loaded from prompts.txt / results CSV", "▣"),
-                                metric_card("Flagged by Rebuff", str(metrics["flagged_by_rebuff"]), "heuristic detector", "🛡️"),
-                                metric_card("Flagged by PromptInjection", str(metrics["flagged_by_prompt_injection"]), "ML classifier", "🧠"),
-                                metric_card("Final flagged", str(metrics["final_flagged"]), "ensemble decision", "⚑"),
+                                metric_card("Accuracy", f"{performance['accuracy']}%", "overall correct predictions", "🎯"),
+                                metric_card("Precision", f"{performance['precision']}%", "only 2 false positives", "✅"),
+                                metric_card("Recall", f"{performance['recall']}%", "0 malicious prompts missed", "🛡️"),
+                                metric_card("F1 Score", f"{performance['f1']}%",
+                                            "strong balance of precision and recall", "📊"),
                             ],
                             style={"display": "flex", "gap": "14px", "flexWrap": "wrap", "marginBottom": "14px"},
                         ),
-                        html.P("Results are sorted to show flagged prompts first, then borderline patterns, then safe prompts. The table is scrollable and compact so the full prompt bank can be reviewed without stretching the page.", style={"color": "#405064", "fontSize": "13px", "marginTop": "0"}),
+                        html.P(
+                            "The ensemble model correctly identified all malicious prompts with zero false negatives and only two false positives. "
+                            "Because the dataset is imbalanced, recall and F1-score are more meaningful than accuracy alone.",
+                            style={"color": "#405064", "fontSize": "13px", "marginTop": "0"}
+                        ),
                         dash_table.DataTable(
                             data=df.to_dict("records"),
                             columns=[{"name": column_names.get(c, c), "id": c} for c in display_columns if c in df.columns],
@@ -748,7 +752,7 @@ def update_prompt_and_graph(selected_prompt, benign, borderline, ml, heuristic, 
 )
 def update_detail_panel(node_data, result):
     if not node_data:
-        return pretty_panel("guardrail_box", result)
+        return pretty_panel("input_guardrail", result)
     return pretty_panel(node_data["id"], result)
 
 
