@@ -13,19 +13,18 @@ Dashboard upgrades:
 - compact evaluation table so columns fit better
 - scrollable, sortable 1000-prompt result table
 """
-
 from __future__ import annotations
-
 from pathlib import Path
 import json
 from typing import Dict, List
-
 from dash import Dash, Input, Output, State, dcc, html, dash_table, ctx
 import dash_cytoscape as cyto
 import pandas as pd
-
 from pipeline_backend import initialize_systems, analyze_prompt, load_results_csv, summarize_results
 from evaluation import get_metrics
+from styles import PAGE_STYLE, CONTENT_STYLE, CARD_STYLE, SECTION_TITLE, GRADIENT_TEXT, COLORS
+from components import feature_chip, contribution_card, prompt_test_card, status_pill, gradient_title, mixed_gradient_title
+
 
 BASE_DIR = Path(__file__).resolve().parent
 CSV_PATH = BASE_DIR / "contribution_results_1000.csv"
@@ -70,20 +69,31 @@ app.index_string = """
             }
         
             /*  ADD THIS RIGHT HERE */
-            .Select {
+            .custom-dropdown {
                 position: relative !important;
+                z-index: 99999 !important;
+                display: block; /* Ensures it takes up the right space */
             }
-        
-            .Select-menu-outer {
+            
+            .custom-dropdown .Select-control {
+                border-radius: 10px !important;
+                border: 1px solid #aab7cf !important;
+            }
+            
+            .custom-dropdown .Select-menu-outer {
                 position: absolute !important;
-                width: 100% !important;
-                top: 100% !important;
+                top: 100% !important; /* Forces it to the bottom of the search bar */
                 left: 0 !important;
-                z-index: 9999 !important;
-                max-height: 250px;
-                overflow-y: auto;
-                border-radius: 10px;
+                width: 100% !important;
+                z-index: 999999 !important;
+                max-height: 300px !important;
+                overflow-y: auto !important;
+                background-color: white !important; /* Ensures it's not transparent */
+                border-radius: 0 0 12px 12px !important;
+                box-shadow: 0 12px 30px rgba(0,0,0,0.15) !important;
+                margin-top: -1px !important;
             }
+            
         </style>
     </head>
     <body>
@@ -244,61 +254,7 @@ default_result = analyze_prompt(default_prompt, systems)
 
 performance = get_metrics()
 # ---------- Styling ----------
-PAGE_STYLE = {
-    "fontFamily": "Inter, Arial, sans-serif",
-    "background": "linear-gradient(120deg, #f7ecff 0%, #eef7ff 45%, #edf4ff 100%)",
-    "minHeight": "100vh",
-    "width": "100%",
-    "maxWidth": "100vw",
-    "overflowX": "hidden",
-    "position": "relative",
-}
-
-CONTENT_STYLE = {
-    "width": "100%",
-    "maxWidth": "1580px",
-    "margin": "0 auto",
-    "padding": "30px 44px 54px 44px",
-    "overflowX": "hidden",
-    "position": "relative",
-    "zIndex": 2,
-}
-
-CARD_STYLE = {
-    "background": "rgba(255,255,255,0.92)",
-    "border": "1px solid #d8e0ea",
-    "borderRadius": "18px",
-    "boxShadow": "0 8px 28px rgba(15, 23, 42, 0.06)",
-    "backdropFilter": "blur(6px)",
-}
-
-SECTION_TITLE = {"fontSize": "22px", "fontWeight": "900", "margin": "0 0 12px 0", "color": "#0f172a"}
-
-GRADIENT_TEXT = {
-    "background": "linear-gradient(90deg, #3b82f6 0%, #8b5cf6 35%, #ec4899 68%, #f97316 100%)",
-    "WebkitBackgroundClip": "text",
-    "backgroundClip": "text",
-    "color": "transparent",
-}
-
-def gradient_title(text: str, size: str = "24px") -> html.Div:
-    return html.Div(text, style={**GRADIENT_TEXT, "fontSize": size, "fontWeight": "950", "margin": "0 0 14px 0", "letterSpacing": "-0.02em"})
-
-COLORS = {
-    "safe_bg": "#effdf4",
-    "safe_border": "#a7e8bc",
-    "safe_text": "#138244",
-    "border_bg": "#fff8df",
-    "border_border": "#f5c451",
-    "border_text": "#a16207",
-    "flag_bg": "#fff1f0",
-    "flag_border": "#f4aaa4",
-    "flag_text": "#b42318",
-    "muted": "#64748b",
-    "ink": "#0f172a",
-    "blue": "#2563eb",
-    "purple": "#8b5cf6",
-}
+#moved to styles.py
 
 
 def wallpaper() -> html.Div:
@@ -313,14 +269,7 @@ def wallpaper() -> html.Div:
                 "position": "fixed", "right": "-120px", "bottom": "-60px", "width": "620px", "height": "620px",
                 "borderRadius": "999px", "background": "radial-gradient(circle, rgba(37,99,235,0.18), rgba(37,99,235,0) 68%)",
                 "zIndex": 0, "pointerEvents": "none",
-            }),
-            html.Div("♢", style={
-                "position": "fixed", "right": "52px", "top": "72px", "fontSize": "180px", "lineHeight": "1",
-                "color": "rgba(37,99,235,0.10)", "zIndex": 0, "pointerEvents": "none",
-            }),
-            html.Div("🔒", style={
-                "position": "fixed", "right": "98px", "top": "116px", "fontSize": "58px", "opacity": 0.10,
-                "zIndex": 0, "pointerEvents": "none",
+
             }),
             html.Div(style={
                 "position": "fixed", "left": "0", "bottom": "0", "width": "100%", "height": "270px",
@@ -330,116 +279,6 @@ def wallpaper() -> html.Div:
         ]
     )
 
-
-def mini_feature(icon: str, title: str, body: str) -> html.Div:
-    return html.Div(
-        [
-            html.Div(icon, style={"fontSize": "25px", "color": COLORS["purple"], "marginBottom": "8px"}),
-            html.Strong(title, style={"display": "block", "fontSize": "14px", "color": COLORS["ink"]}),
-            html.Div(body, style={"fontSize": "12px", "lineHeight": "1.3", "color": "#334155"}),
-        ],
-        style={"flex": "1 1 0",
-                "minWidth": "0",
-                "display": "flex",
-                "flexDirection": "column",
-                "alignItems": "flex-start",
-                "justifyContent": "flex-start",
-                "height": "92px"},
-    )
-
-
-def contribution_card() -> html.Div:
-    return html.Div(
-        [
-            html.Div("System Contribution", style={"fontSize": "12px", "fontWeight": "900", "color": COLORS["blue"], "letterSpacing": "0.06em", "textTransform": "uppercase"}),
-            html.H1("Prompt Injection Guardrail System", style={**GRADIENT_TEXT, "margin": "8px 0 12px 0", "fontSize": "58px", "lineHeight": "1.02", "letterSpacing": "-0.045em"}),
-            html.P(
-                "This dashboard presents a custom multi-layer guardrail for detecting prompt injection attacks. "
-                "The system combines heuristic detection, ML classification, normalized risk scoring, explainability, "
-                "and ensemble routing into one traceable pipeline.",
-                style={"color": "#334155", "fontSize": "14px", "lineHeight": "1.55", "marginBottom": "22px"},
-            ),
-            html.Div(
-                [
-                    mini_feature("🛡️", "Hybrid Detection", "Rebuff heuristics + PromptInjection ML"),
-                    mini_feature("◉", "Risk Scoring", "score ∈ [0,1], threshold τ = 0.50"),
-                    mini_feature("⌘", "Ensemble Logic", "final flag = Rebuff OR ML"),
-                    mini_feature("▤", "Explainability", "layer-by-layer decision trace"),
-                ],
-                style={
-                    "display": "grid",
-                    "gridTemplateColumns": "repeat(4, 1fr)",
-                    "gap": "42px",
-                    "alignItems": "start"},
-            ),
-        ],
-        style={**CARD_STYLE, "padding": "34px 38px", "borderTop": "6px solid transparent", "borderImage": "linear-gradient(90deg, #3b82f6, #8b5cf6, #ec4899, #f97316) 1", "height": "100%"},
-    )
-
-
-def prompt_test_card() -> html.Div:
-    button_style = {
-        "padding": "8px 12px", "borderRadius": "10px", "border": "1px solid #cbd5e1",
-        "fontSize": "12px", "fontWeight": "700", "cursor": "pointer",
-    }
-    return html.Div(
-        [
-            gradient_title("Live Prompt Test", "28px"),
-            html.P("Choose a prompt from the 1000-prompt dataset or type your own prompt to trace the guardrail decision path.", style={"color": "#405064", "marginTop": 0, "fontSize": "13px"}),
-            dcc.Dropdown(
-                id="prompt-picker",
-                options=prompt_options,
-                placeholder="Search and select prompts from prompts.txt...",
-                style={
-                    "marginBottom": "10px",
-                    "fontSize": "13px",
-                    "position": "relative",
-                    "zIndex": 9999,
-                },
-                className="custom-dropdown"
-            ),
-            html.Div(
-                [
-                    html.Button("Benign", id="sample-benign", n_clicks=0, style={**button_style, "background": COLORS["safe_bg"], "color": COLORS["safe_text"]}),
-                    html.Button("Borderline", id="sample-borderline", n_clicks=0, style={**button_style, "background": COLORS["border_bg"], "color": COLORS["border_text"]}),
-                    html.Button("ML Catch", id="sample-ml", n_clicks=0, style={**button_style, "background": "#ffe6e4", "color": COLORS["flag_text"]}),
-                    html.Button("Heuristic Catch", id="sample-heuristic", n_clicks=0, style={**button_style, "background": "#ffe6e4", "color": COLORS["flag_text"]}),
-                    html.Button("Strong Attack", id="sample-strong", n_clicks=0, style={**button_style, "background": "#ffe6e4", "color": COLORS["flag_text"]}),
-                ],
-                style={"display": "flex", "gap": "8px", "flexWrap": "wrap", "marginBottom": "10px"},
-            ),
-            dcc.Textarea(
-                id="prompt-input",
-                value=default_prompt,
-                style={"width": "100%", "maxWidth": "100%", "height": "130px", "padding": "12px", "borderRadius": "14px", "border": "1px solid #cfd9e5", "resize": "vertical", "fontSize": "14px"},
-            ),
-            html.Button("Analyze Prompt", id="analyze-button", n_clicks=0, style={"marginTop": "10px", "padding": "10px 16px", "borderRadius": "12px", "border": "none", "cursor": "pointer", "background": "#111827", "color": "white", "fontWeight": "800"}),
-        ],
-        style={**CARD_STYLE, "padding": "18px", "height": "100%"},
-    )
-
-
-def status_pill(title: str, state: str, detail: str = "", score=None) -> html.Div:
-    if state == "flagged":
-        label, bg, border, color, icon = "FLAGGED", COLORS["flag_bg"], COLORS["flag_border"], COLORS["flag_text"], "!"
-    elif state == "borderline":
-        label, bg, border, color, icon = "BORDERLINE", COLORS["border_bg"], COLORS["border_border"], COLORS["border_text"], "!"
-    else:
-        label, bg, border, color, icon = "SAFE", COLORS["safe_bg"], COLORS["safe_border"], COLORS["safe_text"], "✓"
-
-    score_line = []
-    if score is not None and score != "N/A":
-        score_line = [html.Div(f"Risk Score: {float(score):.2f} | Threshold: {ML_THRESHOLD:.2f}", style={"fontSize": "11px", "color": COLORS["muted"], "marginTop": "4px"})]
-
-    return html.Div(
-        [
-            html.Div([html.Div(title, style={"fontSize": "12px", "fontWeight": "800", "color": COLORS["muted"]}), html.Div(icon, style={"fontSize": "20px", "fontWeight": "900", "color": color})], style={"display": "flex", "alignItems": "center", "justifyContent": "space-between"}),
-            html.Div(label, style={"fontSize": "17px", "fontWeight": "900", "marginTop": "4px", "color": color}),
-            html.Div(detail, style={"fontSize": "11px", "color": COLORS["muted"], "marginTop": "3px"}),
-            *score_line,
-        ],
-        style={"background": bg, "border": f"1px solid {border}", "borderRadius": "14px", "padding": "12px", "flex": "1 1 170px", "minWidth": "0"},
-    )
 
 
 def decision_summary(result: dict) -> html.Div:
@@ -457,7 +296,17 @@ def decision_summary(result: dict) -> html.Div:
 
     return html.Div(
         [
-            gradient_title("Prompt Flow Summary", "28px"),
+            html.Div(
+                "Prompt Flow Summary",
+                style={
+                    "fontSize": "28px",
+                    "fontWeight": "950",
+                    "color": "#1f2937",  # soft charcoal
+                    "margin": "0 0 14px 0",
+                    "letterSpacing": "-0.035em",
+                    "lineHeight": "1.05",
+                },
+            ),
             html.Div(
                 [
                     status_pill("Rebuff Heuristic", rb_state, "rule-based detector"),
@@ -466,7 +315,7 @@ def decision_summary(result: dict) -> html.Div:
                     html.Div(
                         [
                             html.Div("Routing", style={"fontSize": "12px", "fontWeight": "800", "color": COLORS["muted"]}),
-                            html.Div(route, style={"fontSize": "16px", "fontWeight": "900", "marginTop": "4px", "color": COLORS["ink"]}),
+                            html.Div(route, style={"fontSize": "16px", "fontWeight": "900", "marginTop": "4px", "color": "#1f2937"}),
                             html.Div(route_detail, style={"fontSize": "11px", "color": COLORS["muted"], "marginTop": "3px"}),
                         ],
                         style={"background": "#f6f8fb", "border": "1px solid #d8e0ea", "borderRadius": "14px", "padding": "12px", "flex": "0.8 1 150px", "minWidth": "0"},
@@ -620,13 +469,23 @@ app.layout = html.Div(
 
                 html.Div(contribution_card(), style={"marginBottom": "22px"}),
 
-                html.Div(prompt_test_card(), style={"marginBottom": "22px"}),
+                html.Div(prompt_test_card(prompt_options, default_prompt), style={"marginBottom": "22px"}),
 
                 html.Div(id="decision-summary", children=decision_summary(default_result), style={"marginBottom": "22px"}),
 
                 html.Div(
                     [
-                        gradient_title("Architecture Flow", "32px"),
+                        html.Div(
+                            "Architecture Flow",
+                            style={
+                                "fontSize": "32px",
+                                "fontWeight": "900",
+                                "color": "#0b0b0b",  # black
+                                "margin": "0 0 14px 0",
+                                "letterSpacing": "-0.035em",
+                                "lineHeight": "1.05",
+                            },
+                        ),
                         html.Div(
                             [
                                 html.Div(
@@ -653,7 +512,25 @@ app.layout = html.Div(
 
                 html.Div(
                     [
-                        gradient_title("Evaluation Results (1000 Prompt Dataset)", "30px"),
+                        html.Div(
+                            [
+                                mixed_gradient_title([
+                                    ("Evaluation ", True),
+                                    (" Results", False),
+                                ], "34px"),
+
+                                html.Div(
+                                    "Tested on 1,000 prompts",
+                                    style={
+                                        "fontSize": "13px",
+                                        "fontWeight": "700",
+                                        "color": "#64748b",
+                                        "marginTop": "-8px",
+                                        "marginBottom": "18px",
+                                    },
+                                ),
+                            ]
+                        ),
                         html.Div(
                             [
                                 metric_card("Accuracy", f"{performance['accuracy']}%", "overall correct predictions", "🎯"),
