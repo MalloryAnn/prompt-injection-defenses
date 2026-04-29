@@ -21,20 +21,27 @@ from dash import Dash, Input, Output, State, dcc, html, dash_table, ctx
 import dash_cytoscape as cyto
 import pandas as pd
 from pipeline_backend import initialize_systems, analyze_prompt, load_results_csv, summarize_results
-from evaluation import get_metrics
+from evaluation import (
+    get_metrics,
+    category_breakdown,
+    detector_overlap,
+    risk_band_breakdown
+)
 from styles import PAGE_STYLE, CONTENT_STYLE, CARD_STYLE, SECTION_TITLE, GRADIENT_TEXT, COLORS
 from components import feature_chip, contribution_card, prompt_test_card, status_pill, gradient_title, mixed_gradient_title
 
-
+# set base directory and file paths
 BASE_DIR = Path(__file__).resolve().parent
 CSV_PATH = BASE_DIR / "contribution_results_1000.csv"
-PROMPTS_PATH = BASE_DIR / "prompts.txt"
+PROMPTS_PATH = BASE_DIR / "prompts_1000.txt"
 
 ML_THRESHOLD = 0.50
 BORDERLINE_LOW = 0.30
 BORDERLINE_HIGH = ML_THRESHOLD
 
+#init detect systems
 systems = initialize_systems()
+# create dash app
 app = Dash(__name__)
 server = app.server
 
@@ -108,7 +115,7 @@ app.index_string = """
 """
 
 # ---------- Data loading ----------
-
+#classiffy prompts for display grouping
 def classify_prompt(prompt: str) -> str:
     p = prompt.lower()
     attack_markers = [
@@ -128,7 +135,7 @@ def classify_prompt(prompt: str) -> str:
         return "Borderline / Ambiguous"
     return "Benign / Safe"
 
-
+#assign risk band based on the ml score
 def risk_band(score) -> str:
     if pd.isna(score):
         return "Not Scored"
@@ -139,7 +146,7 @@ def risk_band(score) -> str:
         return "Borderline"
     return "Low"
 
-
+# determine the visual state for dashboard nodes
 def visual_state(result: dict, layer: str) -> str:
     """Return safe, borderline, or flagged for visualization only."""
     rb_flag = bool(result.get("rebuff_flag"))
@@ -163,7 +170,7 @@ def visual_state(result: dict, layer: str) -> str:
         return "borderline" if borderline else "safe"
     return "safe"
 
-
+# load prompts from the text file and give it the catgeories
 def load_prompt_bank(path: Path = PROMPTS_PATH) -> pd.DataFrame:
     if not path.exists():
         return pd.DataFrame(columns=["prompt", "prompt_category"])
@@ -173,7 +180,7 @@ def load_prompt_bank(path: Path = PROMPTS_PATH) -> pd.DataFrame:
     prompt_df["prompt_category"] = prompt_df["prompt"].apply(classify_prompt)
     return prompt_df
 
-
+# normalize boolean columns from the csv file
 def normalize_bool_columns(df: pd.DataFrame) -> pd.DataFrame:
     out = df.copy()
     for col in ["rebuff_flag", "prompt_injection_flag", "final_decision"]:
@@ -181,7 +188,7 @@ def normalize_bool_columns(df: pd.DataFrame) -> pd.DataFrame:
             out[col] = out[col].apply(lambda x: str(x).lower() == "true" if not isinstance(x, bool) else x)
     return out
 
-
+# load and merge results w/ prompt data
 def load_results() -> pd.DataFrame:
     base_cols = ["prompt", "rebuff_flag", "prompt_injection_flag", "pi_score", "final_decision"]
     if CSV_PATH.exists():
@@ -253,10 +260,13 @@ default_prompt = sample_prompts["ml"]
 default_result = analyze_prompt(default_prompt, systems)
 
 performance = get_metrics()
+category_stats = category_breakdown()
+overlap_stats = detector_overlap()
+risk_stats = risk_band_breakdown()
 # ---------- Styling ----------
 #moved to styles.py
 
-
+# create my pretty background
 def wallpaper() -> html.Div:
     return html.Div(
         [
@@ -279,8 +289,7 @@ def wallpaper() -> html.Div:
         ]
     )
 
-
-
+#summarize decision path for selected prompt
 def decision_summary(result: dict) -> html.Div:
     pi_score = result.get("pi_score", "N/A")
     rb_state = visual_state(result, "rebuff")
@@ -328,7 +337,7 @@ def decision_summary(result: dict) -> html.Div:
         style={**CARD_STYLE, "padding": "16px", "height": "100%"},
     )
 
-
+# reusable metric card component
 def metric_card(title: str, value: str, subtitle: str = "", icon: str = "") -> html.Div:
     return html.Div(
         [
@@ -337,7 +346,7 @@ def metric_card(title: str, value: str, subtitle: str = "", icon: str = "") -> h
         style={"padding": "14px 16px", "background": "white", "border": "1px solid #d8e0ea", "borderRadius": "14px", "boxShadow": "0 6px 16px rgba(15,23,42,0.05)", "flex": "1 1 210px", "minWidth": "0"},
     )
 
-# ---------- Graph ----------
+# ---------- Build the Graph section----------
 
 def build_elements(result: dict) -> List[Dict]:
     states = {
@@ -376,7 +385,7 @@ def build_elements(result: dict) -> List[Dict]:
         styled.append(cloned)
     return styled
 
-
+# display detailed info for selected node
 def pretty_panel(node_id: str, result: dict):
     custom_layers = {
         "dash_ui": {"name": "Dash UI Layer", "flag": False, "details": {"description": "User enters a prompt into the dashboard interface.", "prompt": result.get("prompt", "")}},
@@ -520,7 +529,7 @@ app.layout = html.Div(
                                 ], "34px"),
 
                                 html.Div(
-                                    "Tested on 1,000 prompts",
+                                    f"Tested on {performance['total_prompts']:,} prompts",
                                     style={
                                         "fontSize": "13px",
                                         "fontWeight": "700",
@@ -534,16 +543,55 @@ app.layout = html.Div(
                         html.Div(
                             [
                                 metric_card("Accuracy", f"{performance['accuracy']}%", "overall correct predictions", "🎯"),
-                                metric_card("Precision", f"{performance['precision']}%", "only 2 false positives", "✅"),
-                                metric_card("Recall", f"{performance['recall']}%", "0 malicious prompts missed", "🛡️"),
+                                metric_card("Precision", f"{performance['precision']}%", f"{performance['FP']} false positives", "✅"),
+                                metric_card("Recall", f"{performance['recall']}%", "21 malicious prompts missed", "🛡️"),
                                 metric_card("F1 Score", f"{performance['f1']}%",
                                             "strong balance of precision and recall", "📊"),
+                             ],
+                                style={"display": "flex", "gap": "14px", "flexWrap": "wrap", "marginBottom": "14px"},
+                            ),
+                        html.Div(
+                    [
+                                metric_card("False Positive Rate", f"{performance['false_positive_rate']}%", "benign/borderline prompts incorrectly flagged", "⚠️"),
+                                metric_card("False Negative Rate", f"{performance['false_negative_rate']}%", "malicious prompts missed", "🚨"),
+                                metric_card("True Positives", str(performance["TP"]), "malicious prompts correctly blocked", "🛡️"),
+                                metric_card("False Positives", str(performance["FP"]), "safe or borderline prompts flagged", "🔍"),
                             ],
                             style={"display": "flex", "gap": "14px", "flexWrap": "wrap", "marginBottom": "14px"},
                         ),
+
+                                # 🔥 CATEGORY TABLE (NEW)
+                        html.H3("Category-Based Detection Analysis", style=SECTION_TITLE),
+
+                        dash_table.DataTable(
+                            data=category_stats.to_dict("records"),
+                            columns=[
+                                {"name": "Category", "id": "prompt_category"},
+                                {"name": "Total", "id": "total"},
+                                {"name": "Flagged", "id": "flagged"},
+                                {"name": "Flag Rate (%)", "id": "flag_rate"},
+                                {"name": "Avg ML Score", "id": "avg_ml_score"},
+                                {"name": "Rebuff Flags", "id": "rebuff_flags"},
+                                {"name": "ML Flags", "id": "ml_flags"},
+                            ],
+                            style_table={"overflowX": "auto", "marginBottom": "18px"},
+                            style_cell={
+                                "textAlign": "left",
+                                "padding": "10px",
+                                "fontFamily": "Inter, Arial",
+                                "fontSize": "13px",
+                            },
+                            style_header={
+                                "fontWeight": "900",
+                                "backgroundColor": "#f8fafc",
+                            },
+
+
+                        ),
                         html.P(
-                            "The ensemble model correctly identified all malicious prompts with zero false negatives and only two false positives. "
-                            "Because the dataset is imbalanced, recall and F1-score are more meaningful than accuracy alone.",
+                            "The system achieves 95% accuracy, but more importantly a recall of 79%,"
+                            " meaning it successfully detects most malicious prompts. The remaining 21 false negatives represent more subtle attacks that were not captured by either detection layer. The model also produces 28 false positives,"
+                            " primarily from borderline prompts, indicating a conservative approach that prioritizes safety.",
                             style={"color": "#405064", "fontSize": "13px", "marginTop": "0"}
                         ),
                         dash_table.DataTable(
@@ -601,6 +649,7 @@ app.layout = html.Div(
     State("sample-prompts", "data"),
     prevent_initial_call=True,
 )
+
 def update_prompt_and_graph(selected_prompt, benign, borderline, ml, heuristic, strong, _analyze_clicks, current_prompt, samples):
     trigger = ctx.triggered_id
     mapping = {
@@ -621,7 +670,7 @@ def update_prompt_and_graph(selected_prompt, benign, borderline, ml, heuristic, 
     result = analyze_prompt(prompt, systems)
     return prompt, result, build_elements(result), decision_summary(result)
 
-
+#callback to update prompt and graph on interaction and node click on panel
 @app.callback(
     Output("detail-panel", "children"),
     Input("architecture-graph", "tapNodeData"),
@@ -632,6 +681,6 @@ def update_detail_panel(node_data, result):
         return pretty_panel("input_guardrail", result)
     return pretty_panel(node_data["id"], result)
 
-
+# run app locally
 if __name__ == "__main__":
     app.run(debug=True)

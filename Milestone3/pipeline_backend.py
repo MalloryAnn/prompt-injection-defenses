@@ -50,7 +50,7 @@ def analyze_prompt(prompt: str, systems: Dict[str, Any]) -> Dict[str, Any]:
     rb = systems["rb"]
     pi_scanner = systems["pi_scanner"]
 
-    # --- Rebuff (heuristic only) ---
+    # --- Rebuff heuristic ---
     try:
         rb_result = rb.detect_injection(
             prompt,
@@ -70,15 +70,15 @@ def analyze_prompt(prompt: str, systems: Dict[str, Any]) -> Dict[str, Any]:
     else:
         rb_error = None
 
-    # --- PromptInjection (ML model) ---
+    # --- PromptInjection ---
     sanitized_prompt, is_valid, pi_score = pi_scanner.scan(prompt)
     pi_flag = not bool(is_valid)
     pi_score = round(float(pi_score), 2)
 
-    # --- Final decision (ensemble logic) ---
+    # ---final decision logic ---
     final_flag = rb_flag or pi_flag
 
-    # --- New dashboard/orchestration metadata ---
+    # --- updated dashboard metadata ---
     if rb_flag and pi_flag:
         decision_path = "Both Rebuff and PromptInjection flagged the prompt."
     elif rb_flag:
@@ -96,7 +96,7 @@ def analyze_prompt(prompt: str, systems: Dict[str, Any]) -> Dict[str, Any]:
         "pi_score": pi_score,
         "final_decision": final_flag,
 
-        # extra fields for dashboard drill-down
+        # extra fields for dashboard
         "rebuff_score": rb_score,
         "rebuff_error": rb_error,
         "sanitized_prompt": sanitized_prompt,
@@ -166,7 +166,7 @@ def load_prompts(file_path: str) -> List[str]:
         return [line.strip() for line in f.readlines() if line.strip()]
 
 
-def run_batch(prompt_file: str = "prompts.txt", output_csv: str = "contribution_results_1000.csv") -> pd.DataFrame:
+def run_batch(prompt_file: str = "prompts_1000.txt", output_csv: str = "contribution_results_1000.csv") -> pd.DataFrame:
     """
     Recreates the original notebook workflow:
     - load prompts
@@ -182,7 +182,6 @@ def run_batch(prompt_file: str = "prompts.txt", output_csv: str = "contribution_
     results = []
     for i, p in enumerate(test_prompts):
         result = analyze_prompt(p, systems)
-        # save only flat fields to CSV
         row = {k: v for k, v in result.items() if k != "layers"}
         results.append(row)
 
@@ -204,7 +203,6 @@ def run_batch(prompt_file: str = "prompts.txt", output_csv: str = "contribution_
 def load_results_csv(csv_path: str = "contribution_results_1000.csv") -> pd.DataFrame:
     return pd.read_csv(csv_path)
 
-
 def summarize_results(df: pd.DataFrame) -> Dict[str, int]:
     return {
         "total_prompts": int(len(df)),
@@ -212,3 +210,5 @@ def summarize_results(df: pd.DataFrame) -> Dict[str, int]:
         "flagged_by_prompt_injection": int(df["prompt_injection_flag"].sum()) if "prompt_injection_flag" in df else 0,
         "final_flagged": int(df["final_decision"].sum()) if "final_decision" in df else 0,
     }
+if __name__ == "__main__":
+    run_batch("prompts_1000.txt", "contribution_results_1000.csv")
