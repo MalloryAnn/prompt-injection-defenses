@@ -29,7 +29,7 @@ Each prompt is analyzed by a unified analysis function that processes prompts th
 
 2. PromptInjection - A machine learning-based classifier that analyzes prompts to detect potentially malicious, or manipulative inputs. It relies on learned patterns from labeled data, which allows it to:
    - Detect subtle or previously unseen injection attempts
-   - Generalize better new attack strategies
+   - Generalize better or new attack strategies
    - Capture context and intent beyond simple keywords
 
 
@@ -48,7 +48,7 @@ Each prompt is analyzed by a unified analysis function that processes prompts th
 
 ## Setup
 
-Install required dependences:
+Install required dependencies:
 pip install -r requirements.txt
 
 
