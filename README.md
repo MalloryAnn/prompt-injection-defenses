@@ -1,175 +1,125 @@
-# Prompt Injection Detection with LLM Guard
+# Prompt Injection Guardrail System
 
 ## Table of Contents
 
 - [Overview](#overview)
-- [Security Context](#security-context-prompt-injection)
-- [System Architecture](#system-architecture)
+- [Implemented Tools Explained](#implemented-tools-explained)
+- [Project Structure](#project-structure)
+- [Setup](#setup)
 - [Running the Project](#running-the-project)
+- [Workflow](#workflow)
+- [Key Design](#key-design)
+- [Summary](#summary)
 - [References](#references)
 
 
 ## Overview
 
-This repository demonstrates input-level prompt injection detection using Protect AI’s `llm-guard` toolkit.
+The Prompt Injection Guardrail system is a multi-layered detection system that combines Rebuff (heurisitic-based detection) and PromptInjection (machine learning-based detection). The system is designed to detect and measure performance of prompts in large language model workflows then provide visualized results through an interactive dashboard. 
 
-The project implements an input-boundary security filter that evaluates user prompts before they are passed to a generative Large Language Model (LLM). The system assigns a numeric risk score and produces an allow/block decision based on a configurable detection threshold.
-
-This implementation is based on the taxonomy presented in the [`tldrsec/prompt-injection-defenses`](https://github.com/tldrsec/prompt-injection-defenses) repository and focuses specifically on detection-based mitigation rather than runtime guardrails or privilege isolation.
+Each prompt is analyzed by a unified analysis function that processes prompts through both detectors, and the system uses an ensemble decision rule, where a prompt is flagged if either detection layer identifies it as potential malicious input.  
 
 
-## Repository Includes
+## Implemented Tools Explained
+
+1. Rebuff - A rule-based detection approach designed to identify common patterns found in prompt injection attacks. It works by scanning prompts for suspicious structures such as:
+   - Instructions that attempt to override system behavior
+   - Requests to reveal hidden or sensitive information
+   - Role manipulation
+
+2. PromptInjection - A machine learning-based classifier that analyzes prompts to detect potentially malicious, or manipulative inputs. It relies on learned patterns from labeled data, which allows it to:
+   - Detect subtle or previously unseen injection attempts
+   - Generalize better new attack strategies
+   - Capture context and intent beyond simple keywords
+
+
+## Project Structure
 
 | Component | Description |
 |------------|-------------|
-| `demo.py` | Standalone Python implementation |
-| `demo.ipynb` | Interactive Jupyter notebook version |
-| `requirements.txt` | Reproducible dependency configuration |
-| Virtual Environment | Clean dependency isolation |
+| `prompts.py` | Generates labeled prompt dataset |
+| `pipeline_backend.py` | Runs detection pipeline |
+| `evalutation.py` | Computes performance metrics |
+| `dashboard.py` | Interactive dashboard (visualization) |
+| `prompts_1000.txt` | Raw prompts |
+| `prompts_1000_labeled.csv` | Prompts with ground-truth labels |
+| `contribution_results_1000.csv` | Detection results | 
 
 
-## Intended Audience
+## Setup
 
-- Students learning about LLM security  
-- Engineers exploring prompt injection defenses  
-- Researchers studying input-boundary filtering  
----
+Install required dependences:
+pip install -r requirements.txt
 
-## Security Context: Prompt Injection
-
-Prompt injection is a class of attacks in which adversarial instructions are embedded within user input or externally retrieved text in order to override system behavior.
-
-Because Large Language Models process both instructions and data as natural language, malicious directives can be inserted into otherwise legitimate content.
-
-### Common Attack Goals
-
-- Override developer or system instructions  
-- Extract hidden system prompts  
-- Trigger unintended tool execution  
-- Exfiltrate sensitive information  
-
-> [!IMPORTANT]
-> Detection at the input boundary reduces the likelihood that malicious instructions reach the generative model.
----
-
-## System Architecture
-
-This project implements an input-level detection layer using the `PromptInjection` scanner from `llm-guard`.
-
-### Model Used
-
-[`protectai/deberta-v3-base-prompt-injection-v2`](https://github.com/protectai/llm-guard)
-
-The model analyzes the prompt and estimates the probability that it contains injection-style instructions.
-
----
-
-### Scanner Output
-
-The scanner returns:
-
-```python
-sanitized_prompt, is_valid, risk_score
-```
-| Return Value       | Description                                 |
-| ------------------ | ------------------------------------------- |
-| `sanitized_prompt` | Cleaned version of the input                |
-| `is_valid`         | Boolean allow/block decision                |
-| `risk_score`       | Numeric probability between `0.0` and `1.0` |
-
----
-
-### Decision Logic
-
-The detection threshold is configurable.
-
-In this implementation:
-```python
-threshold = 0.5
-```
-Prompts with:
-
-```python
-risk_score >= 0.5
-```
-- They are classified as malicious and can be blocked before reaching the LLM.
-
-- This separation between detection and generation reduces the attack surface of LLM-integrated applications.
-
----
 
 ## Running the Project
 
-### Step 1 — Clone the Repository
+### Step 1 — Generate Labeled Prompts
 
 ```bash
-git clone https://github.com/MalloryAnn/prompt-injection-defenses.git
-cd prompt-injection-defenses
+cd prompt-injection-defenses-main/Milestone3
+python3 prompts.py
 ```
-### Step 2 — Create a Virtual Environment
-macOS / Linux:
-```
-python3 -m venv venv
-source venv/bin/activate
-```
-Windows(Powershell)
-```Windows(Powershell)
-python -m venv venv
-venv\Scripts\Activate.ps1
-```
-Windows (Command Prompt)
-```Windows (Command Prompt)
-python -m venv venv
-venv\Scripts\activate
-```
-### Step 3 —  Install Dependencies
+This creates the dataset and corresponding labels
+
+### Step 2 — Run Detection Pipeline
 ```bash
-pip install -r requirements.txt
+python3 pipeline_backend.py
 ```
+Processes all prompts using both detection layers and saves results
+
+### Step 3 —  Run Evaluation
 ```bash
-pip install "numpy<2"
+python3 evaluation.py
 ```
-> [!NOTE]
-> `numpy` is pinned in `requirements.txt` to version `1.26.4` to maintain compatibility with PyTorch.
+Computes: 
+- Accuracy
+- Precision
+- Recall
+- F1 Score
+- Error rates
 
+### Optional Shortcut 
+You can skip the first 3 steps and run step 4, if using saved file that is already included in main 'dashboard.py' code. 
 
-## Execution Options
-
-### Option A - Run Basic Test 1 script (demo.py)
+### Step 4 - Launch Dashboard
 ```bash
-python3 demo.py
+python3 dashboard.py
 ```
-This version is suitable for quick terminal-based execution.
 
-### Option B - Run Jupyter Comprehensive Notebook (demo.ipynb)
+**Then open in your browser:** 
+```
+http://127.0.0.1:8050/
+```
 
-Open Jupyter
+
+## Workflow
+prompts → detection pipeline → results csv → evaluation → dashboard
+
+1. Prompts represents a dataset of benign, borderline, and malicious prompts.
+2. Detection Pipeline processes prompts through Rebuff and PromptInjection.
+3. Results csv is a produced file containing detection results and evaluation metrics.
+4. Evaluation computes accuracy, precision, recall, F1 score, and error rates.
+5. Dashboard is a provided visualization of the analyzation results. 
+
+## Key Design
+The system uses an ensemble approach that combines rule-based detection with a machine learning classifier. 
+
+### Decision Rule 
 ```bash
-jupyter notebook
+final_flag = rebuff_flag OR prompt_injection_flag  
 ```
-**Then open** 
-```
-demo.ipynb
-```
->[!NOTE]
->This notebook includes Test 1 – Test 6 and provides step-by-step execution with printed results.
+A prompt is flagged as malicious if either component detects it. This approach prioritizes catching as many attacks as possible. 
 
----
+Evaluation is performed using labeled prompt data as ground truth to ensure unbiased metrics. The dashboard provides visualization of detection decisions, system architecture, and performance analysis.
 
-## Repository Structure
+## Summary
+This project demonstrates a multi-layer defense system against prompt injection attacks in large language models, combining rule-based heuristics with a machine learning classifier. 
+The system includes a full pipeline for dataset generation, detection, evaluation, and an interactive dashboard for analyzing model performance and failure cases. 
 
-| File | Description |
-|------|-------------|
-| `demo.py` | Standalone script that runs prompt injection detection on predefined test prompts and prints results to the terminal. |
-| `demo.ipynb` | Interactive notebook version of the detector that allows step-by-step execution and testing (includes Test 1–6). |
-| `requirements.txt` | Lists the exact Python packages needed to run the project. |
-| `.gitignore` | Prevents unnecessary local files from being uploaded to GitHub. |
-
----
 
 ## References
 
-This implementation and Milestone 1 are informed by current academic and open-source work in LLM security, including:
 
 1. tldrsec. *Prompt Injection Defenses.*  
    Available at: https://github.com/tldrsec/prompt-injection-defenses
